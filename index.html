@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片加水印 — Image Watermark Studio</title>
+<link rel="icon" href="imgs/logo.png">
+<style>
+/* =========================================================
+   Design Tokens — Precision Tool
+   ========================================================= */
+:root {
+  --bg: #F4F5F7;
+  --surface: #FFFFFF;
+  --surface-2: #FAFBFC;
+  --surface-3: #EEF0F4;
+  --ink-1: #16181D;
+  --ink-2: #565C68;
+  --ink-3: #8A909C;
+  --line: rgba(16,20,30,0.08);
+  --line-strong: rgba(16,20,30,0.14);
+
+  --accent: #2E6BFF;
+  --accent-soft: rgba(46,107,255,0.10);
+  --accent-grad: linear-gradient(180deg, #3D77FF, #2E6BFF);
+  --accent-glow: rgba(46,107,255,0.30);
+
+  --success: #12A150;
+  --danger: #E5484D;
+
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgba(16,20,30,0.05);
+  --shadow-sm: 0 1px 3px rgba(16,20,30,0.08), 0 1px 2px rgba(16,20,30,0.04);
+  --shadow-md: 0 6px 18px rgba(16,20,30,0.10), 0 2px 6px rgba(16,20,30,0.05);
+  --shadow-lg: 0 24px 56px rgba(16,20,30,0.18);
+  --ring: 0 0 0 3px var(--accent-glow);
+
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 260ms;
+
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font);
+  font-size: 12.5px;
+  letter-spacing: -0.12px;
+  line-height: 1.45;
+  color: var(--ink-1);
+  background:
+    radial-gradient(1100px 520px at 100% -12%, rgba(46,107,255,0.07), transparent 60%),
+    radial-gradient(820px 460px at -12% 112%, rgba(120,92,255,0.055), transparent 55%),
+    var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Top bar */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 52px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  z-index: 20;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  display: grid; place-items: center;
+  background: linear-gradient(180deg, #FFFFFF, #EFF3FA);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-xs), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+.brand-mark img { width: 19px; height: 19px; border-radius: 5px; display: block; }
+.brand-title { display: flex; flex-direction: column; }
+.brand-title h1 { font-size: 13.5px; font-weight: 650; letter-spacing: -0.2px; line-height: 1.2; }
+.brand-title span { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; color: var(--ink-3); }
+.topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: var(--font); font-size: 12px; font-weight: 500; letter-spacing: -0.1px;
+  cursor: pointer; border: 1px solid transparent; border-radius: var(--r-sm);
+  height: 30px; padding: 0 13px; outline: none; white-space: nowrap;
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), transform var(--dur-1) var(--ease-out);
+}
+.btn:focus-visible { box-shadow: var(--ring); }
+.btn:disabled { opacity: 0.45; cursor: default; pointer-events: none; }
+.btn-primary { background: var(--accent-grad); color: #fff; box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.18); }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.18); }
+.btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.98); filter: brightness(0.97); }
+.btn-secondary { background: var(--surface); color: var(--ink-1); border-color: var(--line-strong); box-shadow: var(--shadow-xs); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-2); border-color: rgba(16,20,30,0.22); }
+.btn-ghost { background: transparent; color: var(--ink-2); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-3); color: var(--ink-1); }
+
+.mini-btn {
+  height: 28px; padding: 0 10px; font-family: var(--font); font-size: 11px; font-weight: 500;
+  color: var(--ink-2); background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm); cursor: pointer; white-space: nowrap; outline: none;
+  transition: background var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+}
+.mini-btn:hover { background: var(--surface-2); border-color: rgba(16,20,30,0.22); color: var(--ink-1); }
+.mini-btn:focus-visible { box-shadow: var(--ring); }
+
+/* Layout */
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+.sidebar {
+  width: 300px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  overflow-y: auto;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.sidebar-group { display: flex; flex-direction: column; gap: 6px; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; }
+.panel-label { font-size: 10px; font-weight: 650; letter-spacing: 0.6px; text-transform: uppercase; color: var(--ink-3); }
+.value {
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  font-variant-numeric: tabular-nums; background: var(--accent-soft);
+  border-radius: var(--r-pill); padding: 1px 8px; white-space: nowrap;
+}
+
+/* Inline slider: label + track + value on one row */
+.slider-row { display: flex; align-items: center; gap: 8px; }
+.slider-row .panel-label { flex: 0 0 auto; min-width: 44px; }
+.slider-row input[type="range"] { flex: 1; min-width: 0; }
+.slider-row .value { flex: 0 0 auto; }
+
+/* Two-column color pickers */
+.color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.color-col { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.color-col input[type="color"] { width: 100%; height: 28px; }
+.color-col .color-presets { gap: 5px; }
+
+/* Segmented */
+.seg { display: flex; gap: 6px; background: var(--surface-3); border-radius: var(--r-sm); padding: 3px; }
+.seg-btn {
+  flex: 1; height: 24px; border: none; border-radius: 6px; background: transparent;
+  color: var(--ink-2); font-family: var(--font); font-size: 12px; font-weight: 500;
+  cursor: pointer; outline: none; transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.seg-btn:hover { color: var(--ink-1); }
+.seg-btn.active { background: var(--surface); color: var(--accent); box-shadow: var(--shadow-xs); }
+.seg-btn:focus-visible { box-shadow: var(--ring); }
+
+/* Inputs */
+.text-input, .textarea, .select {
+  width: 100%; font-family: var(--font); font-size: 11.5px; letter-spacing: -0.1px; color: var(--ink-1);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); outline: none;
+  transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out), background-color var(--dur-1) var(--ease-out);
+}
+.text-input, .select { height: 28px; padding: 0 10px; }
+.textarea { padding: 6px 10px; resize: vertical; min-height: 38px; line-height: 1.4; }
+.text-input::placeholder, .textarea::placeholder { color: var(--ink-3); }
+.text-input:hover, .textarea:hover, .select:hover { border-color: var(--line-strong); }
+.text-input:focus-visible, .textarea:focus-visible, .select:focus-visible { border-color: var(--accent); background: var(--surface); box-shadow: var(--ring); }
+.select {
+  appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg width='11' height='7' viewBox='0 0 11 7' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 1.75L5.5 5.25L9.5 1.75' stroke='%238A909C' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+.input-row { display: flex; gap: 6px; }
+.input-row .text-input { flex: 1; min-width: 0; }
+
+/* Range */
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 15px; margin: 0;
+  background: transparent; cursor: pointer; outline: none; --fill: 50%;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--accent) var(--fill), var(--surface-3) var(--fill));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 15px; height: 15px; margin-top: -5.5px;
+  border-radius: 50%; background: #fff; border: 1px solid rgba(16,20,30,0.14);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-1) var(--ease-spring), box-shadow var(--dur-1) var(--ease-out);
+}
+input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.14); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.02); }
+input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: var(--shadow-sm), 0 0 0 3px var(--accent-glow); }
+
+/* Color */
+.color-row { display: flex; align-items: center; gap: 8px; }
+input[type="color"] {
+  width: 30px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: var(--r-sm);
+  cursor: pointer; background: transparent; flex-shrink: 0;
+  transition: border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+input[type="color"]:hover { border-color: var(--line-strong); }
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+input[type="color"]::-webkit-color-swatch { border: none; border-radius: 5px; }
+input[type="color"]:focus-visible { box-shadow: var(--ring); }
+.color-presets { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.color-dot {
+  width: 16px; height: 16px; border-radius: 50%; cursor: pointer;
+  border: 1px solid rgba(16,20,30,0.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.55);
+  transition: transform var(--dur-1) var(--ease-spring);
+}
+.color-dot:hover { transform: scale(1.16); }
+.color-dot:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* Watermark image preview */
+.wm-preview {
+  height: 54px; border: 1px dashed var(--line-strong); border-radius: var(--r-sm);
+  background:
+    linear-gradient(45deg, #E7EAF0 25%, transparent 25%),
+    linear-gradient(-45deg, #E7EAF0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #E7EAF0 75%),
+    linear-gradient(-45deg, transparent 75%, #E7EAF0 75%);
+  background-size: 14px 14px; background-position: 0 0, 0 7px, 7px -7px, -7px 0;
+  background-color: var(--surface-2);
+  display: grid; place-items: center; overflow: hidden;
+}
+.wm-preview img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.wm-preview .wm-empty { font-size: 10.5px; color: var(--ink-3); }
+
+/* Position grid */
+.pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.pos-btn {
+  height: 26px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+  background: var(--surface); color: var(--ink-3); cursor: pointer; font-size: 13px;
+  display: grid; place-items: center; outline: none;
+  transition: background var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out), border-color var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.pos-btn:hover { border-color: rgba(16,20,30,0.22); color: var(--ink-1); }
+.pos-btn.active { border-color: transparent; background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.pos-btn:focus-visible { box-shadow: var(--ring); }
+
+/* Switch row */
+.switch-row { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.switch-row span { font-size: 11.5px; color: var(--ink-2); font-weight: 500; }
+.switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch .track { position: absolute; inset: 0; background: var(--surface-3); border-radius: var(--r-pill); transition: background var(--dur-2) var(--ease-out); }
+.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform var(--dur-2) var(--ease-spring); }
+.switch input:checked + .track { background: var(--accent); }
+.switch input:checked + .track::after { transform: translateX(16px); }
+.switch input:focus-visible + .track { box-shadow: var(--ring); }
+
+.divider { height: 1px; background: var(--line); margin: 0; border: 0; }
+
+/* Execute */
+.execute {
+  width: 100%; height: 34px; border: none; border-radius: var(--r-md);
+  background: var(--accent-grad); color: #fff; font-family: var(--font);
+  font-size: 13px; font-weight: 650; letter-spacing: 0.1px; cursor: pointer; outline: none;
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: transform var(--dur-1) var(--ease-out), filter var(--dur-1) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.execute:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.execute:active:not(:disabled) { transform: translateY(0) scale(0.985); filter: brightness(0.97); }
+.execute:focus-visible { box-shadow: var(--shadow-md), var(--ring); }
+.execute:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
+
+.status { font-size: 11px; letter-spacing: -0.1px; color: var(--ink-3); min-height: 15px; line-height: 1.4; }
+.status.error { color: var(--danger); }
+.status.success { color: var(--success); }
+
+/* Main preview */
+.main { flex: 1; display: flex; flex-direction: column; padding: 14px 16px; gap: 11px; overflow: hidden; min-width: 0; }
+.toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.toolbar .count {
+  margin-left: auto; font-size: 11px; font-weight: 600; color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-pill);
+  padding: 3px 11px; font-variant-numeric: tabular-nums;
+}
+.thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; flex-shrink: 0; }
+.thumb {
+  position: relative; flex: 0 0 auto; width: 58px; height: 58px; border-radius: var(--r-md);
+  border: 1px solid var(--line); overflow: hidden; cursor: pointer; background: var(--surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--dur-2) var(--ease-out), border-color var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.thumb:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.thumb.active { border-color: transparent; box-shadow: 0 0 0 2px var(--accent), var(--shadow-md); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb .remove {
+  position: absolute; top: 3px; right: 3px; width: 17px; height: 17px; border-radius: 50%;
+  border: none; background: rgba(22,24,29,0.62); backdrop-filter: blur(6px); color: #fff;
+  font-size: 12px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
+  opacity: 0; transform: scale(0.85);
+  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-spring), background var(--dur-1) var(--ease-out);
+}
+.thumb:hover .remove, .thumb.active .remove { opacity: 1; transform: scale(1); }
+.thumb .remove:hover { background: var(--danger); }
+
+.drop-zone {
+  flex: 1; background: var(--surface); border: 1.5px dashed var(--line-strong); border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center; overflow: auto; min-height: 130px; position: relative;
+  transition: border-color var(--dur-2) var(--ease-out), background var(--dur-2) var(--ease-out), box-shadow var(--dur-2) var(--ease-out);
+}
+.drop-zone.drag-over { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-glow); }
+
+.placeholder { text-align: center; color: var(--ink-3); padding: 20px; }
+.placeholder-icon {
+  width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 16px; display: grid; place-items: center;
+  background: linear-gradient(180deg, #FFFFFF, #EEF2FA); border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.9); color: var(--accent);
+}
+.placeholder-icon svg { width: 24px; height: 24px; }
+.placeholder-title { font-size: 13px; font-weight: 600; color: var(--ink-1); margin-bottom: 3px; }
+.placeholder-sub { font-size: 11px; letter-spacing: -0.1px; color: var(--ink-3); }
+
+canvas { max-width: calc(100% - 32px); max-height: calc(100% - 32px); position: absolute; inset: 0; margin: auto; }
+canvas:not(.hidden) { box-shadow: var(--shadow-lg); border-radius: var(--r-xs); }
+
+.hidden { display: none !important; }
+
+#toast {
+  position: fixed; bottom: 18px; left: 50%; transform: translate(-50%, 10px); padding: 9px 18px;
+  border-radius: var(--r-pill); font-size: 12px; font-weight: 600; letter-spacing: -0.1px; color: #fff;
+  box-shadow: var(--shadow-lg); z-index: 999; max-width: 82%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: opacity var(--dur-3) var(--ease-out), transform var(--dur-3) var(--ease-spring);
+  opacity: 0; pointer-events: none;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+#toast.success { background: linear-gradient(180deg, #1FAE5B, #12A150); }
+#toast.error { background: linear-gradient(180deg, #EE5B60, #E5484D); }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(16,20,30,0.14); border-radius: var(--r-pill); border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(16,20,30,0.26); background-clip: content-box; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+.sidebar-group, .sidebar > .divider, .execute, .status, .toolbar, .thumbs, .drop-zone {
+  animation: rise var(--dur-3) var(--ease-out) both;
+}
+.toolbar { animation-delay: 0.10s; }
+.drop-zone { animation-delay: 0.16s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-delay: 0ms !important; transition-duration: 0.001ms !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark"><img src="imgs/logo.png" alt="图片加水印图标"></span>
+    <div class="brand-title">
+      <h1>图片加水印</h1>
+      <span>Image Watermark Studio</span>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button type="button" class="btn btn-ghost" id="clearBtn" disabled>清空</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <section class="sidebar-group">
+      <div class="seg" id="typeSeg">
+        <button type="button" class="seg-btn active" data-type="text">文字水印</button>
+        <button type="button" class="seg-btn" data-type="image">图片水印</button>
+      </div>
+    </section>
+
+    <section class="sidebar-group" id="textPanel">
+      <p class="panel-label">水印文字</p>
+      <textarea id="watermarkText" class="textarea" rows="2" spellcheck="false">© BmScriptsBox</textarea>
+      <p class="panel-label">字体</p>
+      <select id="fontFamily" class="select">
+        <option value="Microsoft YaHei">Microsoft YaHei</option>
+        <option value="Noto Sans SC">Noto Sans SC</option>
+        <option value="SimHei">SimHei</option>
+        <option value="SimSun">SimSun</option>
+        <option value="Microsoft JhengHei">Microsoft JhengHei</option>
+        <option value="Arial">Arial</option>
+        <option value="Helvetica">Helvetica</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Impact">Impact</option>
+        <option value="Comic Sans MS">Comic Sans MS</option>
+      </select>
+      <div class="slider-row">
+        <span class="panel-label">字号</span>
+        <input type="range" id="fontSize" min="12" max="200" value="48" aria-label="字号">
+        <span class="value" id="fontSizeValue">48px</span>
+      </div>
+      <div class="color-grid">
+        <div class="color-col">
+          <span class="panel-label">文字颜色</span>
+          <input type="color" id="textColor" value="#ffffff" aria-label="文字颜色">
+          <div class="color-presets" id="textColorPresets"></div>
+        </div>
+        <div class="color-col">
+          <span class="panel-label">描边颜色</span>
+          <input type="color" id="strokeColor" value="#000000" aria-label="描边颜色">
+          <div class="color-presets" id="strokeColorPresets"></div>
+        </div>
+      </div>
+      <div class="slider-row">
+        <span class="panel-label">描边宽度</span>
+        <input type="range" id="strokeWidth" min="0" max="10" value="2" aria-label="描边宽度">
+        <span class="value" id="strokeWidthValue">2px</span>
+      </div>
+    </section>
+
+    <section class="sidebar-group hidden" id="imagePanel">
+      <p class="panel-label">水印图片</p>
+      <div class="wm-preview" id="watermarkPreview"><span class="wm-empty">未选择图片</span></div>
+      <button type="button" class="mini-btn" id="watermarkPickBtn">选择水印图片</button>
+      <div class="slider-row">
+        <span class="panel-label">水印大小</span>
+        <input type="range" id="watermarkScale" min="5" max="100" value="20" aria-label="水印大小">
+        <span class="value" id="watermarkScaleValue">20%</span>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <section class="sidebar-group">
+      <div class="slider-row">
+        <span class="panel-label">透明度</span>
+        <input type="range" id="opacity" min="0.1" max="1" step="0.1" value="0.7" aria-label="透明度">
+        <span class="value" id="opacityValue">70%</span>
+      </div>
+      <div class="slider-row">
+        <span class="panel-label">旋转角度</span>
+        <input type="range" id="rotation" min="-180" max="180" value="0" aria-label="旋转角度">
+        <span class="value" id="rotationValue">0°</span>
+      </div>
+      <p class="panel-label">位置</p>
+      <div class="pos-grid" id="posGrid">
+        <button type="button" class="pos-btn" data-pos="nw" title="左上">↖</button>
+        <button type="button" class="pos-btn" data-pos="n" title="中上">↑</button>
+        <button type="button" class="pos-btn" data-pos="ne" title="右上">↗</button>
+        <button type="button" class="pos-btn" data-pos="w" title="左中">←</button>
+        <button type="button" class="pos-btn active" data-pos="c" title="居中">●</button>
+        <button type="button" class="pos-btn" data-pos="e" title="右中">→</button>
+        <button type="button" class="pos-btn" data-pos="sw" title="左下">↙</button>
+        <button type="button" class="pos-btn" data-pos="s" title="中下">↓</button>
+        <button type="button" class="pos-btn" data-pos="se" title="右下">↘</button>
+      </div>
+      <label class="switch-row">
+        <span>平铺水印</span>
+        <span class="switch"><input type="checkbox" id="tileMode"><span class="track"></span></span>
+      </label>
+    </section>
+
+    <section class="sidebar-group">
+      <p class="panel-label">输出目录</p>
+      <div class="input-row">
+        <input type="text" id="outputPath" class="text-input" placeholder="留空则输出到源目录" spellcheck="false" autocomplete="off">
+        <button type="button" class="mini-btn" id="browseOutputBtn">浏览</button>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <button type="button" class="execute" id="executeBtn">确定添加水印</button>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <button type="button" class="btn btn-primary" id="addBtn">添加图片</button>
+      <button type="button" class="btn btn-secondary" id="pickFileBtn">选择图片</button>
+      <span class="count" id="count">共 0 张</span>
+      <input type="file" id="fileInput" accept="image/*" multiple class="hidden">
+    </div>
+
+    <div class="thumbs hidden" id="thumbs"></div>
+
+    <div class="drop-zone" id="dropZone">
+      <div class="placeholder" id="placeholder">
+        <span class="placeholder-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+            <circle cx="8.5" cy="8.5" r="1.6"></circle>
+            <path d="M21 15.5l-4.3-4.3a2 2 0 0 0-2.8 0L4 20"></path>
+          </svg>
+        </span>
+        <p class="placeholder-title">拖放图片到此处</p>
+        <p class="placeholder-sub">或点击「添加图片」「选择图片」</p>
+      </div>
+      <canvas id="canvas" class="hidden"></canvas>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+const TOAST_DURATION = 2500;
+const CLOSE_DELAY = 900;
+const IMAGE_TYPE_PREFIX = 'image/';
+const IMAGE_ENDPOINT = '/api/image/';
+const WATERMARK_ENDPOINT = '/api/watermark-image';
+const TEXT_POS_PADDING = 20;
+const TILE_TEXT_SPACING = 1.5;
+const TILE_IMAGE_SPACING = 1.2;
+const COLOR_PRESETS = ['#ffffff', '#000000', '#f43f5e', '#06b6d4', '#fbbf24', '#d946ef'];
+
+let images = [];
+let selectedId = null;
+let originalImage = null;
+let watermarkImage = null;
+let watermarkImagePath = '';
+let currentType = 'text';
+let currentPosition = 'c';
+let isBusy = false;
+
+const $ = (id) => document.getElementById(id);
+
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d');
+const dropZone = $('dropZone');
+const placeholder = $('placeholder');
+const toast = $('toast');
+const thumbsEl = $('thumbs');
+const countEl = $('count');
+const typeSeg = $('typeSeg');
+const textPanel = $('textPanel');
+const imagePanel = $('imagePanel');
+const watermarkTextEl = $('watermarkText');
+const fontFamilyEl = $('fontFamily');
+const fontSizeEl = $('fontSize');
+const fontSizeValue = $('fontSizeValue');
+const textColorEl = $('textColor');
+const strokeColorEl = $('strokeColor');
+const strokeWidthEl = $('strokeWidth');
+const strokeWidthValue = $('strokeWidthValue');
+const watermarkScaleEl = $('watermarkScale');
+const watermarkScaleValue = $('watermarkScaleValue');
+const watermarkPreview = $('watermarkPreview');
+const opacityEl = $('opacity');
+const opacityValue = $('opacityValue');
+const rotationEl = $('rotation');
+const rotationValue = $('rotationValue');
+const posGrid = $('posGrid');
+const tileModeEl = $('tileMode');
+const outputPathEl = $('outputPath');
+const executeBtn = $('executeBtn');
+const clearBtn = $('clearBtn');
+const statusEl = $('status');
+
+const RANGE_INPUTS = [fontSizeEl, strokeWidthEl, watermarkScaleEl, opacityEl, rotationEl];
+
+const updateRangeFill = (el) => {
+  const min = Number(el.min) || 0;
+  const max = Number(el.max) || 100;
+  const val = Number(el.value);
+  const pct = max === min ? 0 : ((val - min) / (max - min)) * 100;
+  el.style.setProperty('--fill', pct.toFixed(1) + '%');
+};
+
+function buildPresets(container, target) {
+  COLOR_PRESETS.forEach((color) => {
+    const dot = document.createElement('div');
+    dot.className = 'color-dot';
+    dot.style.background = color;
+    dot.dataset.color = color;
+    dot.setAttribute('tabindex', '0');
+    dot.setAttribute('role', 'button');
+    dot.setAttribute('aria-label', '颜色 ' + color);
+    dot.addEventListener('click', () => {
+      target.value = color;
+      updatePreview();
+    });
+    dot.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        dot.click();
+      }
+    });
+    container.appendChild(dot);
+  });
+}
+buildPresets($('textColorPresets'), textColorEl);
+buildPresets($('strokeColorPresets'), strokeColorEl);
+
+typeSeg.querySelectorAll('.seg-btn').forEach((btn) => {
+  btn.addEventListener('click', () => setType(btn.dataset.type));
+});
+
+posGrid.querySelectorAll('.pos-btn').forEach((btn) => {
+  btn.addEventListener('click', () => setPosition(btn.dataset.pos));
+});
+
+RANGE_INPUTS.forEach((el) => {
+  el.addEventListener('input', () => {
+    updateRangeFill(el);
+    updatePreview();
+  });
+});
+[fontFamilyEl, watermarkTextEl].forEach((el) => el.addEventListener('input', updatePreview));
+textColorEl.addEventListener('input', updatePreview);
+strokeColorEl.addEventListener('input', updatePreview);
+tileModeEl.addEventListener('change', updatePreview);
+
+$('addBtn').addEventListener('click', addImagesDialog);
+$('pickFileBtn').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', () => {
+  uploadFiles($('fileInput').files);
+  $('fileInput').value = '';
+});
+$('watermarkPickBtn').addEventListener('click', pickWatermark);
+$('browseOutputBtn').addEventListener('click', browseOutput);
+clearBtn.addEventListener('click', clearAll);
+executeBtn.addEventListener('click', execute);
+
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  uploadFiles(e.dataTransfer.files);
+});
+
+function showToast(msg, type) {
+  toast.textContent = msg;
+  toast.className = 'show ' + (type === 'error' ? 'error' : 'success');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), TOAST_DURATION);
+}
+
+function setStatus(msg, type) {
+  statusEl.textContent = msg || '';
+  statusEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+function setBusy(value) {
+  isBusy = value;
+  const disabled = value || images.length === 0;
+  executeBtn.disabled = disabled;
+  clearBtn.disabled = disabled;
+  executeBtn.textContent = value ? '处理中...' : '确定添加水印';
+}
+
+function setType(type) {
+  currentType = type === 'image' ? 'image' : 'text';
+  typeSeg.querySelectorAll('.seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.type === currentType));
+  textPanel.classList.toggle('hidden', currentType !== 'text');
+  imagePanel.classList.toggle('hidden', currentType !== 'image');
+  updatePreview();
+}
+
+function setPosition(pos) {
+  currentPosition = pos;
+  posGrid.querySelectorAll('.pos-btn').forEach((b) => b.classList.toggle('active', b.dataset.pos === pos));
+  updatePreview();
+}
+
+// ---- image list ----
+async function refreshImages() {
+  try {
+    const res = await fetch('/api/images');
+    const data = await res.json();
+    images = data.images || [];
+  } catch {
+    images = [];
+  }
+  if (!images.some((i) => i.id === selectedId)) {
+    selectedId = images.length ? images[0].id : null;
+  }
+  renderThumbs();
+  countEl.textContent = '共 ' + images.length + ' 张';
+  setBusy(isBusy);
+  await loadSelected();
+}
+
+function renderThumbs() {
+  thumbsEl.innerHTML = '';
+  thumbsEl.classList.toggle('hidden', images.length === 0);
+  images.forEach((img) => {
+    const el = document.createElement('div');
+    el.className = 'thumb' + (img.id === selectedId ? ' active' : '');
+    el.title = img.path || img.name;
+    const im = document.createElement('img');
+    im.src = IMAGE_ENDPOINT + img.id;
+    im.alt = img.name;
+    el.appendChild(im);
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'remove';
+    rm.textContent = '×';
+    rm.title = '移除';
+    rm.setAttribute('aria-label', '移除 ' + img.name);
+    rm.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      removeImage(img.id);
+    });
+    el.appendChild(rm);
+    el.addEventListener('click', () => {
+      if (isBusy) return;
+      selectedId = img.id;
+      renderThumbs();
+      loadSelected();
+    });
+    thumbsEl.appendChild(el);
+  });
+}
+
+function loadSelected() {
+  const item = images.find((i) => i.id === selectedId);
+  if (!item) {
+    originalImage = null;
+    placeholder.classList.remove('hidden');
+    canvas.classList.add('hidden');
+    return;
+  }
+  const im = new Image();
+  im.addEventListener('load', () => {
+    originalImage = im;
+    placeholder.classList.add('hidden');
+    canvas.classList.remove('hidden');
+    updatePreview();
+  });
+  im.addEventListener('error', () => showToast('图片加载失败', 'error'));
+  im.src = IMAGE_ENDPOINT + item.id;
+}
+
+async function addImagesDialog() {
+  if (isBusy) return;
+  setStatus('选择图片中...');
+  try {
+    const res = await fetch('/api/images/pick', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      await refreshImages();
+      setStatus('');
+    } else {
+      setStatus(data.error || '添加失败', 'error');
+    }
+  } catch (e) {
+    setStatus(e.message, 'error');
+  }
+}
+
+async function uploadFiles(fileList) {
+  if (isBusy || !fileList || !fileList.length) return;
+  for (const file of Array.from(fileList)) {
+    if (!file.type.startsWith(IMAGE_TYPE_PREFIX)) continue;
+    try {
+      await fetch('/api/images/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream', 'X-Filename': encodeURIComponent(file.name) },
+        body: await file.arrayBuffer(),
+      });
+    } catch {}
+  }
+  await refreshImages();
+}
+
+async function removeImage(id) {
+  if (isBusy) return;
+  try { await fetch(IMAGE_ENDPOINT + id, { method: 'DELETE' }); } catch {}
+  await refreshImages();
+}
+
+async function clearAll() {
+  if (isBusy || !images.length) return;
+  try { await fetch('/api/images', { method: 'DELETE' }); } catch {}
+  await refreshImages();
+}
+
+async function browseOutput() {
+  if (isBusy) return;
+  setStatus('选择目录中...');
+  try {
+    const res = await fetch('/api/output/pick', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok && data.path) outputPathEl.value = data.path;
+    setStatus('');
+  } catch (e) {
+    setStatus(e.message, 'error');
+  }
+}
+
+// ---- watermark ----
+async function pickWatermark() {
+  if (isBusy) return;
+  setStatus('选择水印图片中...');
+  try {
+    const res = await fetch('/api/watermark/pick', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok && data.path) {
+      watermarkImagePath = data.path;
+      await loadWatermarkImage();
+      setType('image');
+    } else if (data.error !== 'cancelled') {
+      setStatus(data.error || '选择失败', 'error');
+    }
+    setStatus('');
+  } catch (e) {
+    setStatus(e.message, 'error');
+  }
+}
+
+function loadWatermarkImage() {
+  return new Promise((resolve) => {
+    const im = new Image();
+    im.addEventListener('load', () => {
+      watermarkImage = im;
+      watermarkPreview.innerHTML = '';
+      const pImg = document.createElement('img');
+      pImg.src = WATERMARK_ENDPOINT + '?t=' + Date.now();
+      pImg.alt = '水印图片';
+      watermarkPreview.appendChild(pImg);
+      updatePreview();
+      resolve(true);
+    });
+    im.addEventListener('error', () => resolve(false));
+    im.src = WATERMARK_ENDPOINT + '?t=' + Date.now();
+  });
+}
+
+// ---- preview ----
+function roundPos(canvasW, canvasH, elemW, elemH) {
+  const p = TEXT_POS_PADDING;
+  const map = {
+    nw: { x: p + elemW / 2, y: p + elemH / 2 },
+    n: { x: canvasW / 2, y: p + elemH / 2 },
+    ne: { x: canvasW - p - elemW / 2, y: p + elemH / 2 },
+    w: { x: p + elemW / 2, y: canvasH / 2 },
+    c: { x: canvasW / 2, y: canvasH / 2 },
+    e: { x: canvasW - p - elemW / 2, y: canvasH / 2 },
+    sw: { x: p + elemW / 2, y: canvasH - p - elemH / 2 },
+    s: { x: canvasW / 2, y: canvasH - p - elemH / 2 },
+    se: { x: canvasW - p - elemW / 2, y: canvasH - p - elemH / 2 },
+  };
+  return map[currentPosition] || map.c;
+}
+
+function drawTextWatermark(rotation, isTile) {
+  const text = watermarkTextEl.value;
+  if (!text.trim()) return;
+  const font = fontFamilyEl.value;
+  const size = parseInt(fontSizeEl.value, 10);
+  const color = textColorEl.value;
+  const strokeColor = strokeColorEl.value;
+  const strokeWidth = parseInt(strokeWidthEl.value, 10);
+
+  ctx.font = size + 'px ' + font;
+  ctx.fillStyle = color;
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = strokeWidth;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const textWidth = ctx.measureText(text).width;
+  const textHeight = size;
+  const radians = (rotation * Math.PI) / 180;
+
+  if (isTile) {
+    const spacing = Math.max(textWidth, textHeight) * TILE_TEXT_SPACING;
+    for (let y = -canvas.height; y < canvas.height * 2; y += spacing) {
+      for (let x = -canvas.width; x < canvas.width * 2; x += spacing) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(radians);
+        if (strokeWidth > 0) ctx.strokeText(text, 0, 0);
+        ctx.fillText(text, 0, 0);
+        ctx.restore();
+      }
+    }
+  } else {
+    const pos = roundPos(canvas.width, canvas.height, textWidth, textHeight);
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(radians);
+    if (strokeWidth > 0) ctx.strokeText(text, 0, 0);
+    ctx.fillText(text, 0, 0);
+    ctx.restore();
+  }
+}
+
+function drawImageWatermark(rotation, isTile) {
+  if (!watermarkImage) return;
+  const scale = parseInt(watermarkScaleEl.value, 10) / 100;
+  const wmWidth = canvas.width * scale;
+  const wmHeight = (watermarkImage.height / watermarkImage.width) * wmWidth;
+  const radians = (rotation * Math.PI) / 180;
+
+  if (isTile) {
+    const spacing = Math.max(wmWidth, wmHeight) * TILE_IMAGE_SPACING;
+    for (let y = -canvas.height; y < canvas.height * 2; y += spacing) {
+      for (let x = -canvas.width; x < canvas.width * 2; x += spacing) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(radians);
+        ctx.drawImage(watermarkImage, -wmWidth / 2, -wmHeight / 2, wmWidth, wmHeight);
+        ctx.restore();
+      }
+    }
+  } else {
+    const pos = roundPos(canvas.width, canvas.height, wmWidth, wmHeight);
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.rotate(radians);
+    ctx.drawImage(watermarkImage, -wmWidth / 2, -wmHeight / 2, wmWidth, wmHeight);
+    ctx.restore();
+  }
+}
+
+function updatePreview() {
+  fontSizeValue.textContent = fontSizeEl.value + 'px';
+  strokeWidthValue.textContent = strokeWidthEl.value + 'px';
+  opacityValue.textContent = Math.round(parseFloat(opacityEl.value) * 100) + '%';
+  rotationValue.textContent = rotationEl.value + '°';
+  watermarkScaleValue.textContent = watermarkScaleEl.value + '%';
+  if (!originalImage) return;
+
+  canvas.width = originalImage.width;
+  canvas.height = originalImage.height;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(originalImage, 0, 0);
+
+  ctx.globalAlpha = parseFloat(opacityEl.value);
+  const rotation = parseInt(rotationEl.value, 10);
+  const isTile = tileModeEl.checked;
+  if (currentType === 'text') drawTextWatermark(rotation, isTile);
+  else drawImageWatermark(rotation, isTile);
+  ctx.globalAlpha = 1;
+}
+
+function collectConfig() {
+  return {
+    watermarkType: currentType,
+    watermarkText: watermarkTextEl.value,
+    fontFamily: fontFamilyEl.value,
+    fontSize: parseInt(fontSizeEl.value, 10),
+    textColor: textColorEl.value,
+    strokeColor: strokeColorEl.value,
+    strokeWidth: parseInt(strokeWidthEl.value, 10),
+    watermarkImagePath: watermarkImagePath || '',
+    watermarkScale: parseInt(watermarkScaleEl.value, 10),
+    opacity: parseFloat(opacityEl.value),
+    rotation: parseInt(rotationEl.value, 10),
+    position: currentPosition,
+    tileMode: tileModeEl.checked,
+    outputPath: outputPathEl.value.trim(),
+  };
+}
+
+// ---- execute ----
+async function execute() {
+  if (isBusy) return;
+  if (!images.length) {
+    showToast('请先添加图片', 'error');
+    return;
+  }
+  const config = collectConfig();
+  setBusy(true);
+  setStatus('准备中...');
+
+  try {
+    await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config),
+    });
+  } catch {}
+
+  const failures = [];
+  const total = images.length;
+  for (let i = 0; i < total; i++) {
+    setStatus('处理中 ' + (i + 1) + '/' + total + '...');
+    try {
+      const res = await fetch('/api/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: images[i].id, config }),
+      });
+      const result = await res.json();
+      if (!result.ok) failures.push({ name: images[i].name, error: result.error || '失败' });
+    } catch (e) {
+      failures.push({ name: images[i].name, error: e.message });
+    }
+  }
+
+  if (failures.length === 0) {
+    setStatus('');
+    setBusy(false);
+    showToast('已输出 ' + total + ' 张', 'success');
+    setTimeout(closeWindow, CLOSE_DELAY);
+  } else {
+    setBusy(false);
+    setStatus('完成：' + (total - failures.length) + '/' + total + ' 成功', 'error');
+    showToast(failures.length + ' 张失败：' + failures[0].error, 'error');
+  }
+}
+
+function closeWindow() {
+  try {
+    if (window.webview && typeof window.webview.resolve === 'function') {
+      window.webview.resolve({ ok: true });
+      return;
+    }
+  } catch {}
+  try { window.close(); } catch {}
+}
+
+// ---- config ----
+async function loadConfigFromServer() {
+  try {
+    const resp = await fetch('/api/config');
+    const cfg = await resp.json();
+    if (!cfg || !cfg.watermarkType) return;
+    watermarkTextEl.value = cfg.watermarkText || '';
+    fontFamilyEl.value = cfg.fontFamily || 'Arial';
+    fontSizeEl.value = cfg.fontSize || 48;
+    textColorEl.value = cfg.textColor || '#ffffff';
+    strokeColorEl.value = cfg.strokeColor || '#000000';
+    strokeWidthEl.value = cfg.strokeWidth || 0;
+    watermarkScaleEl.value = cfg.watermarkScale || 20;
+    opacityEl.value = cfg.opacity !== undefined ? cfg.opacity : 0.7;
+    rotationEl.value = cfg.rotation || 0;
+    tileModeEl.checked = !!cfg.tileMode;
+    outputPathEl.value = cfg.outputPath || '';
+    setPosition(cfg.position || 'c');
+    setType(cfg.watermarkType === 'image' ? 'image' : 'text');
+    if (cfg.watermarkImagePath) {
+      watermarkImagePath = cfg.watermarkImagePath;
+      await loadWatermarkImage();
+    }
+    RANGE_INPUTS.forEach(updateRangeFill);
+    updatePreview();
+  } catch {}
+}
+
+// ---- init ----
+RANGE_INPUTS.forEach(updateRangeFill);
+setType('text');
+setPosition('c');
+setBusy(false);
+loadConfigFromServer();
+refreshImages();
+</script>
+</body>
+</html>

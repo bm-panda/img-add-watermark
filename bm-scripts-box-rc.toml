@@ -1,0 +1,148 @@
+[bmscriptsbox]
+
+[bmscriptsbox.info]
+id = "c8f3e2a1-3d4b-5c6d-7e8f-9a0b1c2d3e4f"
+name = "图片加水印"
+desc = "图片批量加水印 | 文字/图片水印、字体字号颜色描边、透明度/旋转/九宫格定位/平铺、实时预览、多图批量、输出目录与后缀可配置 | 支持右键/快捷键/卡片触发，可被其他脚本联动调用"
+version = "1.4.1"
+icon = "./imgs/logo.png"
+
+[bmscriptsbox.runtime]
+language = "node.js"
+language_version = ">=v16.0"
+entry = "main.js"
+terminal = "never"
+binaries = [{name = "webview-cli"}]
+
+[bmscriptsbox.triggers.context_menu]
+enabled = true
+targets = ["files"]
+filters = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"]
+
+[bmscriptsbox.triggers.shortcut]
+enabled = true
+input_type = "files"
+filters = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"]
+
+
+[[bmscriptsbox.inputs]]
+name = "target_paths"
+label = "图片"
+type = "list"
+exts = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"]
+description = "要添加水印的图片文件"
+
+
+[[bmscriptsbox.outputs]]
+name = "files"
+type = "list"
+description = "处理成功后的输出文件路径列表"
+
+[[bmscriptsbox.outputs]]
+name = "count"
+type = "str"
+description = "成功处理的数量"
+
+
+[[bmscriptsbox.params]]
+name = "type"
+label = "水印类型"
+type = "str"
+default = "text"
+choices = ["text", "image"]
+choice_labels = { text = "文字", image = "图片" }
+required = false
+description = "水印类型：text 文字 / image 图片"
+
+[[bmscriptsbox.params]]
+name = "text"
+label = "水印文字"
+type = "str"
+default = "© BmScriptsBox"
+required = false
+description = "文字水印内容"
+
+[[bmscriptsbox.params]]
+name = "font_size"
+label = "字号"
+type = "int"
+default = 48
+required = false
+description = "文字水印字号（px）"
+
+[[bmscriptsbox.params]]
+name = "color"
+label = "文字颜色"
+type = "str"
+default = "#ffffff"
+required = false
+description = "文字水印颜色，如 #ffffff"
+
+[[bmscriptsbox.params]]
+name = "opacity"
+label = "透明度"
+type = "float"
+default = 0.7
+required = false
+description = "水印透明度，0.1 ~ 1"
+
+[[bmscriptsbox.params]]
+name = "rotation"
+label = "旋转角度"
+type = "int"
+default = 0
+required = false
+description = "水印旋转角度，-180 ~ 180"
+
+[[bmscriptsbox.params]]
+name = "position"
+label = "位置"
+type = "str"
+default = "c"
+choices = ["nw", "n", "ne", "w", "c", "e", "sw", "s", "se"]
+required = false
+description = "九宫格位置：nw/n/ne/w/c/e/sw/s/se"
+
+[[bmscriptsbox.params]]
+name = "tile"
+label = "平铺"
+type = "bool"
+default = false
+required = false
+description = "是否将水印平铺整张图片"
+
+[[bmscriptsbox.params]]
+name = "image_path"
+label = "水印图片路径"
+type = "str"
+default = ""
+required = false
+description = "图片水印的文件路径（type=image 时使用）"
+
+[[bmscriptsbox.params]]
+name = "scale"
+label = "水印大小"
+type = "int"
+default = 20
+required = false
+description = "图片水印占原图宽度的百分比"
+
+[[bmscriptsbox.params]]
+name = "output_dir"
+label = "输出目录"
+type = "str"
+default = ""
+required = false
+description = "输出目录；留空则输出到各图片源目录"
+
+[[bmscriptsbox.params]]
+name = "suffix"
+label = "文件名后缀"
+type = "str"
+default = "_watermarked"
+required = false
+description = "输出文件名后缀，如 _watermarked"
+
+
+[bmscriptsbox.node]
+enabled = true

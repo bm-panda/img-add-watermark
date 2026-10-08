@@ -1,0 +1,16 @@
+{
+  "name": "image-marker",
+  "version": "1.4.1",
+  "private": true,
+  "description": "图片批量加水印 - 为图片添加文字或图片水印，支持平铺、旋转、定位",
+  "main": "main.js",
+  "engines": {
+    "node": ">=16.0"
+  },
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.2"
+  }
+}
